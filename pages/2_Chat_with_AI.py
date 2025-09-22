@@ -90,13 +90,6 @@ def _render_chat_history():
                 )
 
 
-@st.experimental_dialog("Assistant response")
-def _show_response_modal(response: str):
-    st.markdown(response)
-    if st.button("Close"):
-        st.experimental_rerun()
-
-
 def _handle_user_submission() -> None:
     user_message = st.session_state.chat_input.strip()
     if not user_message:
