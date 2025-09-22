@@ -35,13 +35,13 @@ st.markdown(
         margin-top: auto;
         padding-top: 0.5rem;
     }
-    .bottom-bar [data-testid="column"]:nth-child(3),
-    .bottom-bar [data-testid="column"]:nth-child(4) {
+    .bottom-bar [data-testid="column"]:nth-child(n+3) {
         display: flex;
         justify-content: flex-end;
         align-items: center;
     }
-    .bottom-bar [data-testid="column"]:nth-child(3) {
+    .bottom-bar [data-testid="column"]:nth-child(3),
+    .bottom-bar [data-testid="column"]:nth-child(4) {
         padding-right: 0.5rem;
     }
     .bottom-bar .stButton button {
@@ -52,6 +52,8 @@ st.markdown(
         height: 3rem;
         border-radius: 0.5rem;
         font-weight: 600;
+        white-space: nowrap;
+        padding: 0 1.5rem;
     }
     .bottom-bar .stButton button:hover {
         background-color: #1e40af;
@@ -77,11 +79,12 @@ json_payload = st.text_area(
     placeholder="Paste or type your JSON here...",
     height=500,
     label_visibility="collapsed",
+    key="json_payload",
 )
 st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="bottom-bar">', unsafe_allow_html=True)
-left_col, spacer_col, validate_col, submit_col = st.columns([2, 6, 1, 1])
+left_col, spacer_col, validate_col, submit_col = st.columns([2, 5, 2, 1])
 
 with left_col:
     document_type = st.selectbox(
@@ -92,7 +95,7 @@ with left_col:
 spacer_col.empty()
 
 with validate_col:
-    validate_clicked = st.button("Validate", use_container_width=True)
+    validate_clicked = st.button("Beauty and Validate", use_container_width=True)
 
 with submit_col:
     submit_clicked = st.button("Submit", use_container_width=True)
