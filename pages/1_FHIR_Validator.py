@@ -20,7 +20,8 @@ def _decode_bytes(file_bytes: bytes) -> Tuple[Optional[str], Optional[str]]:
 
 
 def _submit_json_to_api(payload: Any) -> Any:
-    api_url = st.secrets.get("fhir_submit_url") or os.getenv("FHIR_SUBMIT_URL")
+    #api_url = st.secrets.get("fhir_submit_url") or os.getenv("FHIR_SUBMIT_URL")
+    api_url = "https://manuel1704.app.n8n.cloud/webhook-test/c5bcee78-e30c-43b0-9a2e-05cff3e1f28e"
     if not api_url:
         raise RuntimeError(
             "No submission endpoint configured. Set `st.secrets['fhir_submit_url']` or "
@@ -28,9 +29,9 @@ def _submit_json_to_api(payload: Any) -> Any:
         )
 
     headers = {"Content-Type": "application/json"}
-    api_key = st.secrets.get("fhir_submit_api_key") or os.getenv("FHIR_SUBMIT_API_KEY")
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
+    # api_key = st.secrets.get("fhir_submit_api_key") or os.getenv("FHIR_SUBMIT_API_KEY")
+    # if api_key:
+    #     headers["Authorization"] = f"Bearer {api_key}"
 
     try:
         response = requests.post(api_url, json=payload, headers=headers, timeout=30)
