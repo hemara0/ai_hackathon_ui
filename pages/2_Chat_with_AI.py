@@ -1,7 +1,9 @@
 import datetime as dt
+import os
 from typing import List, Literal, TypedDict
 
 import streamlit as st
+import requests
 
 st.set_page_config(page_title="Chat with AI", layout="wide")
 
@@ -31,11 +33,51 @@ def _generate_ai_response(prompt: str) -> str:
     if not prompt.strip():
         return "I need some text to respond to."
 
+    try:
+        return _call_external_chat_api(prompt.strip())
+    except RuntimeError as exc:
+        st.warning(str(exc))
+
     return (
         "This is a simulated AI reply. Replace `_generate_ai_response` with an actual "
         "LLM call to enable live conversations. For now, I can reflect back your "
         f"message: {prompt.strip()}"
     )
+
+
+def _call_external_chat_api(prompt: str) -> str:
+    api_url = st.secrets.get("chat_api_url") or os.getenv("CHAT_API_URL")
+    if not api_url:
+        raise RuntimeError(
+            "No chat API URL configured. Set `st.secrets['chat_api_url']` or the "
+            "`CHAT_API_URL` environment variable."
+        )
+
+    headers = {"Content-Type": "application/json"}
+    api_key = st.secrets.get("chat_api_key") or os.getenv("CHAT_API_KEY")
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    payload = {"message": prompt}
+
+    try:
+        response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        raise RuntimeError(f"Chat API request failed: {exc}") from exc
+
+    try:
+        body = response.json()
+    except ValueError:
+        return response.text.strip()
+
+    if isinstance(body, dict):
+        for key in ("reply", "message", "response", "content"):
+            value = body.get(key)
+            if isinstance(value, str) and value.strip():
+                return value
+
+    return str(body)
 
 
 def _render_sidebar():

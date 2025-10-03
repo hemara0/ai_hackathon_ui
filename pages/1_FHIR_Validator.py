@@ -1,7 +1,9 @@
 import json
-from typing import Optional, Tuple
+import os
+from typing import Any, Optional, Tuple
 
 import streamlit as st
+import requests
 
 from json_validator import validate_json
 
@@ -15,6 +17,31 @@ def _decode_bytes(file_bytes: bytes) -> Tuple[Optional[str], Optional[str]]:
         except UnicodeDecodeError:
             continue
     return None, "Unable to decode file. Supported encodings: UTF-8 or UTF-16."
+
+
+def _submit_json_to_api(payload: Any) -> Any:
+    api_url = st.secrets.get("fhir_submit_url") or os.getenv("FHIR_SUBMIT_URL")
+    if not api_url:
+        raise RuntimeError(
+            "No submission endpoint configured. Set `st.secrets['fhir_submit_url']` or "
+            "the `FHIR_SUBMIT_URL` environment variable."
+        )
+
+    headers = {"Content-Type": "application/json"}
+    api_key = st.secrets.get("fhir_submit_api_key") or os.getenv("FHIR_SUBMIT_API_KEY")
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    try:
+        response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        raise RuntimeError(f"Submission request failed: {exc}") from exc
+
+    try:
+        return response.json()
+    except ValueError:
+        return response.text.strip()
 
 st.set_page_config(page_title="FHIR Validator", layout="wide")
 
@@ -225,4 +252,24 @@ if validate_clicked:
             st.toast("JSON validation failed", icon="⚠️")
 
 if submit_clicked:
-    st.toast("Submit clicked", icon="🚀")
+    if not json_payload.strip():
+        st.warning("Please provide JSON before submitting.")
+    else:
+        try:
+            structured_payload = json.loads(json_payload)
+        except json.JSONDecodeError as exc:
+            st.error(f"Invalid JSON: {exc}")
+            st.toast("Submission failed — invalid JSON", icon="⚠️")
+        else:
+            with st.spinner("Submitting to external API..."):
+                try:
+                    response_body = _submit_json_to_api(structured_payload)
+                except RuntimeError as exc:
+                    st.error(str(exc))
+                    st.toast("Submission failed", icon="⚠️")
+                else:
+                    st.session_state["submission_response"] = response_body
+                    st.session_state["submission_payload"] = structured_payload
+                    st.session_state["submission_document_type"] = document_type
+                    st.toast("Submission sent", icon="🚀")
+                    st.switch_page("pages/Response.py")
